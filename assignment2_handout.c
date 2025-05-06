@@ -69,10 +69,15 @@ typedef struct {
 floor_info floors[NFLOORS];
 lift_info* lift_pointer = NULL;
 
+semaphore print = NULL;
+
 // --------------------------------------------------
 // Print a string on the screen at position (x,y)
 // --------------------------------------------------
 void print_at_xy(int x, int y, const char *s) {
+
+	semaphore_wait(&print);
+
 	// Move cursor to (x,y)
 	gotoxy(x,y);
 	
@@ -84,6 +89,8 @@ void print_at_xy(int x, int y, const char *s) {
 	
 	// Move cursor out of the way
 	gotoxy(42, NFLOORS+2);
+
+	semaphore_signal(&print);
 }
 
 // --------------------------------------------------
@@ -132,9 +139,9 @@ void get_into_lift(lift_info *lift, int direction) {
 			// Wait for person to get into lift
 			Sleep(GETINSPEED);
 
-//---			// Set which lift the passenger should enter
+//---		// Set which lift the passenger should enter
 			lift_pointer = lift;
-//---			// Signal passenger to enter
+//---		// Signal passenger to enter
 			semaphore_signal(s);
 		 } else {
 			break;
@@ -351,6 +358,7 @@ int main() {
 	}
 
 	// --- Initialise any other semaphores ---
+	semaphore_create(&print, 1);
 
 
 	display_student_information();
