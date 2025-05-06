@@ -286,6 +286,16 @@ void* person_thread(void *p) {
 	return NULL;
 }
 
+
+void display_student_information(){
+	printf("-------------------------------------------\n");
+	printf(" 159.341 Assignment 2 Semester 1 2025 \n");
+	printf(" Submitted by: Nicholas Partridge, 99243783 \n");
+	printf("--------------------------------------------\n");
+	printf(" Press Enter to continue ");
+	getchar();
+}
+
 // --------------------------------------------------
 //	Print the building on the screen
 // --------------------------------------------------
@@ -341,7 +351,10 @@ int main() {
 	}
 
 	// --- Initialise any other semaphores ---
-	
+
+
+	display_student_information();
+
 	// Print Building
 	printbuilding();
 
