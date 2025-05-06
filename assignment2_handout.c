@@ -67,6 +67,7 @@ typedef struct {
 // Some global variables
 // --------------------------------------------------
 floor_info floors[NFLOORS];
+lift_info* lift_pointer = NULL;
 
 // --------------------------------------------------
 // Print a string on the screen at position (x,y)
@@ -131,8 +132,10 @@ void get_into_lift(lift_info *lift, int direction) {
 			// Wait for person to get into lift
 			Sleep(GETINSPEED);
 
----			// Set which lift the passenger should enter
----			// Signal passenger to enter
+//---			// Set which lift the passenger should enter
+			lift_pointer = lift;
+//---			// Signal passenger to enter
+			semaphore_signal(s);
 		 } else {
 			break;
 		}
@@ -166,7 +169,7 @@ void* lift_thread(void *p) {
 	Sleep(rnd(1000));
 
 	// Loop forever
-	while(true) {
+	while(1) {
 		// Print current position of the lift
 		print_at_xy(no*4+1, NFLOORS-lift.position, lf);
 
@@ -184,7 +187,8 @@ void* lift_thread(void *p) {
 			// Wait for exit lift delay
 			Sleep(GETOUTSPEED);
 
----			// Signal passenger to leave lift			
+//---		// Signal passenger to leave lift		
+			semaphore_signal(&lift.stopsem[lift.position]);
 
 			// Check if that was the last passenger waiting for this floor
 			if(!lift.stops[lift.position]) {
@@ -247,7 +251,8 @@ void* person_thread(void *p) {
 			// Print person waiting
 			print_at_xy(NLIFTS*4+ floors[from].waitingtogoup +floors[from].waitingtogodown,NFLOORS-from, pr);
 			
----			// Wait for a lift to arrive (going up)
+//---		// Wait for a lift to arrive (going up)
+			semaphore_wait(&floors[from].up_arrow);
 		} else {
 			// One more person waiting to go down
 			floors[from].waitingtogodown++;
@@ -255,11 +260,12 @@ void* person_thread(void *p) {
 			// Print person waiting
 			print_at_xy(NLIFTS*4+floors[from].waitingtogodown+floors[from].waitingtogoup,NFLOORS-from, pr);
 			
----			// Wait for a lift to arrive (going down)
+//---		// Wait for a lift to arrive (going down)
+			semaphore_wait(&floors[from].down_arrow);
 		}
 		
-		// Which lift we are getting into
----		lift = ;
+//---	// Which lift we are getting into
+		lift = lift_pointer;
 
 		// Add one to passengers waiting for floor
 		lift->stops[to]++;
@@ -270,7 +276,8 @@ void* person_thread(void *p) {
 			print_at_xy(lift->no*4+1+2, NFLOORS-to, "-");
 		}
 
----		// Wait until we are at the right floor
+//---	// Wait until we are at the right floor
+		semaphore_wait(&lift->stopsem[to]);
 
 		// Exit the lift
 		from = to;
