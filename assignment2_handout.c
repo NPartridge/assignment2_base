@@ -386,7 +386,7 @@ int main() {
 	semaphore_create(&increment_down, 1);
 	semaphore_create(&pointer_lock, 1);
 
-	// display_student_information();
+	display_student_information();
 
 	// Print Building
 	printbuilding();
