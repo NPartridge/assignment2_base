@@ -63,22 +63,20 @@ typedef struct {
 	semaphore stopsem[NFLOORS];   // People in the lift wait on one of these
 } lift_info;
 
-// Information about pointer buffer item
-typedef struct{
-	lift_info* lift_pointer;
-	semaphore full;
-	semaphore empty;
-} buffer_item;
 
 // --------------------------------------------------
 // Some global variables
 // --------------------------------------------------
 floor_info floors[NFLOORS];
-
-buffer_item buffer[NLIFTS];
-int* lift_id;
+lift_info* lift_pointer = NULL;
 
 semaphore print_lock = NULL;
+semaphore pointer_lock = NULL;
+
+semaphore increment_up = NULL;
+semaphore increment_down = NULL;
+semaphore decrement_lock = NULL;
+
 
 // --------------------------------------------------
 // Print a string on the screen at position (x,y)
@@ -118,13 +116,16 @@ void get_into_lift(lift_info *lift, int direction) {
 
 		// Number of people waiting to go up
 		waiting = &floors[lift->position].waitingtogoup;
+
 	} else {
 		// Use down_arrow semaphore
 		s = &floors[lift->position].down_arrow;
 
 		// Number of people waiting to go down
 		waiting = &floors[lift->position].waitingtogodown;
+		
 	}
+
 
 	// For all the people waiting
 	while(*waiting) {
@@ -143,17 +144,18 @@ void get_into_lift(lift_info *lift, int direction) {
 			print_at_xy(NLIFTS*4+floors[lift->position].waitingtogodown + floors[lift->position].waitingtogoup, NFLOORS-lift->position, " ");
 
 			// One less person waiting
+			semaphore_wait(&decrement_lock);
 			(*waiting)--;
+			semaphore_signal(&decrement_lock);
 
 			// Wait for person to get into lift
 			Sleep(GETINSPEED);
 
 //---		// Set which lift the passenger should enter
-			semaphore_wait(&buffer[lift->no].empty);
-			lift_id = &lift->no;
-			buffer[*lift_id].lift_pointer = lift;
-			semaphore_signal(&buffer[*lift_id].full);
-
+			semaphore_wait(&pointer_lock);
+			lift_pointer = lift;
+			semaphore_signal(&pointer_lock);
+			
 //---		// Signal passenger to enter
 			semaphore_signal(s);
 		 } else {
@@ -266,7 +268,9 @@ void* person_thread(void *p) {
 		// Check which direction the person is going (UP/DOWN)
 		if(to > from) {
 			// One more person waiting to go up
+			semaphore_wait(&increment_up);
 			floors[from].waitingtogoup++;
+			semaphore_signal(&increment_up);
 			
 			// Print person waiting
 			print_at_xy(NLIFTS*4+ floors[from].waitingtogoup +floors[from].waitingtogodown,NFLOORS-from, pr);
@@ -275,7 +279,9 @@ void* person_thread(void *p) {
 			semaphore_wait(&floors[from].up_arrow);
 		} else {
 			// One more person waiting to go down
+			semaphore_wait(&increment_down);
 			floors[from].waitingtogodown++;
+			semaphore_signal(&increment_down);
 			
 			// Print person waiting
 			print_at_xy(NLIFTS*4+floors[from].waitingtogodown+floors[from].waitingtogoup,NFLOORS-from, pr);
@@ -285,9 +291,7 @@ void* person_thread(void *p) {
 		}
 		
 //---	// Which lift we are getting into
-		semaphore_wait(&buffer[*lift_id].full);
-		lift = buffer[*lift_id].lift_pointer;
-		semaphore_signal(&buffer[*lift_id].empty);
+		lift = lift_pointer;
 
 		// Add one to passengers waiting for floor
 		lift->stops[to]++;
@@ -372,17 +376,12 @@ int main() {
 		semaphore_create(&floors[i].down_arrow, 0);
 	}
 
-	// Initialise buffer
-	for (i = 0; i < NLIFTS; i++){
-		buffer[i].lift_pointer = NULL;
-		semaphore_create(&buffer[i].full, 0);
-		semaphore_create(&buffer[i].empty, 1);
-	}
-
 	// --- Initialise any other semaphores ---
 	semaphore_create(&print_lock, 1);
-
-
+	semaphore_create(&increment_up, 1);
+	semaphore_create(&increment_down, 1);
+	semaphore_create(&decrement_lock, 1);
+	semaphore_create(&pointer_lock, 1);
 
 	// display_student_information();
 
