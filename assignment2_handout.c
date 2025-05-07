@@ -1,3 +1,6 @@
+// 159.341 Assignment 2 Semester 1 2025
+// Submitted by: Nicholas Partridge, 99243783
+
 // --------------------------------------------------
 // ---   159.341 Assignment 2 - Lift Simulator    ---
 // --------------------------------------------------
@@ -20,8 +23,8 @@
 // --------------------------------------------------
 // Define delay times (in milliseconds)
 // --------------------------------------------------
-#define SLOW
-// #define FAST
+// #define SLOW
+#define FAST
 
 #if defined(SLOW)
 	#define LIFTSPEED 50      // The time it takes for the lift to move one floor
@@ -72,7 +75,6 @@ lift_info* lift_pointer = NULL;
 
 semaphore print_lock = NULL;
 semaphore pointer_lock = NULL;
-
 semaphore increment_up = NULL;
 semaphore increment_down = NULL;
 
@@ -147,9 +149,7 @@ void get_into_lift(lift_info *lift, int direction) {
 			print_at_xy(NLIFTS*4+floors[lift->position].waitingtogodown + floors[lift->position].waitingtogoup, NFLOORS-lift->position, " ");
 
 			// One less person waiting
-	
 			(*waiting)--;
-
 
 			// Wait for person to get into lift
 			Sleep(GETINSPEED);
@@ -381,11 +381,18 @@ int main() {
 	}
 
 	// --- Initialise any other semaphores ---
+	// protect use of the print_at_xy function
 	semaphore_create(&print_lock, 1);
+
+	// protect modification of global waitingtogup counter
 	semaphore_create(&increment_up, 1);
+	// protect modification of global waitingtogdown counter
 	semaphore_create(&increment_down, 1);
+
+	// protect modification of the global lift_info pointer
 	semaphore_create(&pointer_lock, 1);
 
+	// Assigment Information
 	display_student_information();
 
 	// Print Building
