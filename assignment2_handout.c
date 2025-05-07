@@ -75,8 +75,6 @@ semaphore pointer_lock = NULL;
 
 semaphore increment_up = NULL;
 semaphore increment_down = NULL;
-semaphore decrement_lock = NULL;
-
 
 // --------------------------------------------------
 // Print a string on the screen at position (x,y)
@@ -108,11 +106,14 @@ void get_into_lift(lift_info *lift, int direction) {
 	// Local variables
 	int *waiting;
 	semaphore *s;
+	semaphore *p;
 
 	// Check lift direction
 	if(direction==UP) {
 		// Use up_arrow semaphore
 		s = &floors[lift->position].up_arrow;
+
+		p = &increment_up;
 
 		// Number of people waiting to go up
 		waiting = &floors[lift->position].waitingtogoup;
@@ -121,12 +122,14 @@ void get_into_lift(lift_info *lift, int direction) {
 		// Use down_arrow semaphore
 		s = &floors[lift->position].down_arrow;
 
+		p = &increment_down;
+
 		// Number of people waiting to go down
 		waiting = &floors[lift->position].waitingtogodown;
 		
 	}
 
-
+	semaphore_wait(p);
 	// For all the people waiting
 	while(*waiting) {
 		// Check if lift is empty
@@ -144,9 +147,9 @@ void get_into_lift(lift_info *lift, int direction) {
 			print_at_xy(NLIFTS*4+floors[lift->position].waitingtogodown + floors[lift->position].waitingtogoup, NFLOORS-lift->position, " ");
 
 			// One less person waiting
-			semaphore_wait(&decrement_lock);
+	
 			(*waiting)--;
-			semaphore_signal(&decrement_lock);
+
 
 			// Wait for person to get into lift
 			Sleep(GETINSPEED);
@@ -162,6 +165,7 @@ void get_into_lift(lift_info *lift, int direction) {
 			break;
 		}
 	}
+	semaphore_signal(p);
 }
 
 // --------------------------------------------------
@@ -380,7 +384,6 @@ int main() {
 	semaphore_create(&print_lock, 1);
 	semaphore_create(&increment_up, 1);
 	semaphore_create(&increment_down, 1);
-	semaphore_create(&decrement_lock, 1);
 	semaphore_create(&pointer_lock, 1);
 
 	// display_student_information();
